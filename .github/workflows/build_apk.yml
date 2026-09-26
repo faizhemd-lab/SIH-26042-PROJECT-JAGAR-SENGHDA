@@ -27,18 +27,31 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Generate Android Scaffolding & Configure minSdkVersion 23
+      - name: Prepare Assets & Android Platform Scaffolding
         run: |
           cd mobile_app
-          flutter create --platforms=android .
-          sed -i 's/minSdkVersion.*/minSdkVersion 23/g' android/app/build.gradle
+          # Create asset directories so Flutter build doesn't fail on missing paths
+          mkdir -p assets/db assets/models
+          
+          # Generate clean Android platform files
+          flutter create --platforms=android --org com.jagarsenghda .
+          
+          # Force minSdkVersion 23 for compatibility across AGP versions
+          sed -i 's/minSdkVersion.*/minSdkVersion 23/g' android/app/build.gradle || true
+          sed -i 's/minSdk.*/minSdk = 23/g' android/app/build.gradle || true
+          
+          # Configure AndroidX and increase JVM memory for CI runner
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
+
           yes | flutter doctor --android-licenses || true
           flutter pub get
 
       - name: Build Android Debug APK
         run: |
           cd mobile_app
-          flutter build apk --debug
+          flutter build apk --debug --no-tree-shake-icons
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
