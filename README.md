@@ -1,5 +1,6 @@
 # SIH-26042-PROJECT-JAGAR-SENGHDA
 🎓 Project Jagar Senghda
+
 Team Name: CodeSwitch
 Target Event: Smart India Hackathon (SIH) 2026
 Problem Statement ID: 26042
