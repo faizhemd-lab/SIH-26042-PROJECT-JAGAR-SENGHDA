@@ -27,28 +27,41 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Prepare Assets & Android Platform Scaffolding
+      - name: Prepare Assets & Configure Android Platform
         run: |
           cd mobile_app
           mkdir -p assets/db assets/models
           
-          # Generate Android platform files
+          # 1. Generate clean Android platform files
           flutter create --platforms=android --org com.jagarsenghda .
-          
-          # Set minSdkVersion to 23 and compileSdkVersion to 34
-          sed -i 's/minSdkVersion.*/minSdkVersion 23/g' android/app/build.gradle || true
-          sed -i 's/minSdk.*/minSdk = 23/g' android/app/build.gradle || true
-          sed -i 's/compileSdkVersion.*/compileSdkVersion 34/g' android/app/build.gradle || true
-          sed -i 's/compileSdk.*/compileSdk = 34/g' android/app/build.gradle || true
 
-          # Upgrade Java target compatibility from 1.8 to 17 for sealed class support in record_android
-          sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' android/app/build.gradle || true
+          # 2. Safely update build.gradle via Python to guarantee correct block scope
+          python3 -c "
+          import re
 
-          # Enable Core Library Desugaring for D8 compiler
-          sed -i '/compileOptions {/a \        coreLibraryDesugaringEnabled true' android/app/build.gradle || true
-          sed -i '/dependencies {/a \    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"' android/app/build.gradle || true
-          
-          # Configure AndroidX & Gradle properties
+          path = 'android/app/build.gradle'
+          with open(path, 'r') as f:
+              code = f.read()
+
+          # Update SDK versions & Java 17 target
+          code = re.sub(r'compileSdkVersion\s+.*', 'compileSdkVersion 34', code)
+          code = re.sub(r'compileSdk\s*=.*', 'compileSdk = 34', code)
+          code = re.sub(r'minSdkVersion\s+.*', 'minSdkVersion 23', code)
+          code = re.sub(r'minSdk\s*=.*', 'minSdk = 23', code)
+          code = re.sub(r'JavaVersion\.VERSION_1_8', 'JavaVersion.VERSION_17', code)
+
+          # Enable core library desugaring inside compileOptions
+          if 'compileOptions {' in code:
+              code = code.replace('compileOptions {', 'compileOptions {\n        coreLibraryDesugaringEnabled true')
+
+          # Append proper dependencies block at the end of file
+          code += '\n\ndependencies {\n    coreLibraryDesugaring \"com.android.tools:desugar_jdk_libs:2.0.4\"\n}\n'
+
+          with open(path, 'w') as f:
+              f.write(code)
+          "
+
+          # 3. Configure Gradle properties for AndroidX and runner JVM memory
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
