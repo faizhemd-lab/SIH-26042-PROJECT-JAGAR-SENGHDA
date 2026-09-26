@@ -9,7 +9,7 @@ Problem Statement ID: 26042
 
 Category: Smart Education | Software
 
-Project Jagar Senghda is an edge-native, offline-first pedagogical adaptation and real-time voice translation assistant tailored for primary education in rural and tribal belts, particularly in states like Jharkhand. Designed specifically to bridge the severe L1 (Mother Tongue) to L2 (State Language) comprehension gap, the system empowers native Hindi-speaking educators to seamlessly teach indigenous students speaking Santhali, Mundari, and Ho.
+Project Jagar Senghda(_Jagar Senghda mean to communicate knowledge, in Mundari_) is an edge-native, offline-first pedagogical adaptation and real-time voice translation assistant tailored for primary education in rural and tribal belts, particularly in states like Jharkhand. Designed specifically to bridge the severe L1 (Mother Tongue) to L2 (State Language) comprehension gap, the system empowers native Hindi-speaking educators to seamlessly teach indigenous students speaking Santhali, Mundari, and Ho.
 
 By operating entirely offline on ultra-low-cost Android hardware (≤ 2GB RAM), the platform eliminates recurring cloud infrastructure costs and connectivity dependencies.
 
