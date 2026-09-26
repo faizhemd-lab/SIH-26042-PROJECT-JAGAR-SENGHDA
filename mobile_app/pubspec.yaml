@@ -1,0 +1,42 @@
+name: jagar_senghda
+description: "AI-Powered Vernacular Pedagogy and Real-Time Translation Tool for Mother Tongue-Based Primary Education."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Offline Database & File Systems (WAL Mode Support)
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  path: ^1.8.3
+
+  # C++ Native Execution Engine Bridge (whisper.cpp & ONNX Runtime)
+  ffi: ^2.1.0
+
+  # Off-Grid Vector Graphic & PDF Worksheet Compiler
+  pdf: ^3.10.4
+
+  # Audio Capture & Playback
+  record: ^5.1.2
+  audioplayers: ^5.2.1
+
+  # UI Icons & Utilities
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Register Pre-cached Offline Database and Model Weight Paths
+  assets:
+    - assets/db/
+    - assets/models/
