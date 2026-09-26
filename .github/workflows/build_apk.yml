@@ -27,41 +27,61 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Prepare Assets & Configure Android Platform
+      - name: Prepare Assets & Android Platform Configuration
         run: |
           cd mobile_app
           mkdir -p assets/db assets/models
           
-          # 1. Generate clean Android platform files
+          # 1. Generate base Android platform files
           flutter create --platforms=android --org com.jagarsenghda .
 
-          # 2. Safely update build.gradle via Python to guarantee correct block scope
-          python3 -c "
-          import re
+          # 2. Overwrite build.gradle using AGP 7.3 compatible Groovy syntax
+          cat << 'EOF' > android/app/build.gradle
+          plugins {
+              id "com.android.application"
+              id "kotlin-android"
+              id "dev.flutter.flutter-gradle-plugin"
+          }
 
-          path = 'android/app/build.gradle'
-          with open(path, 'r') as f:
-              code = f.read()
+          android {
+              namespace "com.jagarsenghda"
+              compileSdkVersion 34
 
-          # Update SDK versions & Java 17 target
-          code = re.sub(r'compileSdkVersion\s+.*', 'compileSdkVersion 34', code)
-          code = re.sub(r'compileSdk\s*=.*', 'compileSdk = 34', code)
-          code = re.sub(r'minSdkVersion\s+.*', 'minSdkVersion 23', code)
-          code = re.sub(r'minSdk\s*=.*', 'minSdk = 23', code)
-          code = re.sub(r'JavaVersion\.VERSION_1_8', 'JavaVersion.VERSION_17', code)
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+                  coreLibraryDesugaringEnabled true
+              }
 
-          # Enable core library desugaring inside compileOptions
-          if 'compileOptions {' in code:
-              code = code.replace('compileOptions {', 'compileOptions {\n        coreLibraryDesugaringEnabled true')
+              kotlinOptions {
+                  jvmTarget = '17'
+              }
 
-          # Append proper dependencies block at the end of file
-          code += '\n\ndependencies {\n    coreLibraryDesugaring \"com.android.tools:desugar_jdk_libs:2.0.4\"\n}\n'
+              defaultConfig {
+                  applicationId "com.jagarsenghda"
+                  minSdkVersion 23
+                  targetSdkVersion 34
+                  versionCode 1
+                  versionName "1.0.0"
+              }
 
-          with open(path, 'w') as f:
-              f.write(code)
-          "
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.debug
+                  }
+              }
+          }
 
-          # 3. Configure Gradle properties for AndroidX and runner JVM memory
+          flutter {
+              source '../..'
+          }
+
+          dependencies {
+              coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+          }
+          EOF
+
+          # 3. Enable AndroidX and set JVM memory for CI runner
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
