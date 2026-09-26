@@ -27,120 +27,114 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Generate Android Platform Files & Force AGP 8.2.1
-        run: |
-          cd mobile_app
-          mkdir -p assets/db assets/models
-          flutter create --platforms=android --org com.jagarsenghda .
+       - name: Generate Android Platform Files & Force AGP 8.2.1
+  run: |
+    cd mobile_app
+    mkdir -p assets/db assets/models
+    flutter create --platforms=android --org com.jagarsenghda .
 
-          # 1. Force Gradle Wrapper to 8.2
-          cat << 'EOF' > android/gradle/wrapper/gradle-wrapper.properties
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-all.zip
-          EOF
+    # 1. Gradle Wrapper → 8.2
+    cat << 'EOF' > android/gradle/wrapper/gradle-wrapper.properties
+    distributionBase=GRADLE_USER_HOME
+    distributionPath=wrapper/dists
+    zipStoreBase=GRADLE_USER_HOME
+    zipStorePath=wrapper/dists
+    distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-all.zip
+    EOF
 
-          # 2. Force settings.gradle to use AGP 8.2.1 and Kotlin 1.9.22
-          cat << 'EOF' > android/settings.gradle
-          pluginManagement {
-              def flutterSdkPath = {
-                  def properties = new Properties()
-                  def file = new File(rootProject.projectDir, "local.properties")
-                  if (file.exists()) {
-                      file.withReader("UTF-8") { reader -> properties.load(reader) }
-                  }
-                  def flutterSdkPath = properties.getProperty("flutter.sdk")
-                  assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-                  return flutterSdkPath
-              }()
+    # 2. Correct settings.gradle (includes plugin loader)
+    cat << 'EOF' > android/settings.gradle
+    pluginManagement {
+        def flutterSdkPath = {
+            def properties = new Properties()
+            file("local.properties").withInputStream { properties.load(it) }
+            def flutterSdkPath = properties.getProperty("flutter.sdk")
+            assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+            return flutterSdkPath
+        }()
 
-              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+        includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
+        repositories {
+            google()
+            mavenCentral()
+            gradlePluginPortal()
+        }
+    }
 
-          plugins {
-              id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
-              id "com.android.application" version "8.2.1" apply false
-              id "org.jetbrains.kotlin.android" version "1.9.22" apply false
-          }
+    plugins {
+        id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+        id "com.android.application" version "8.2.1" apply false
+        id "org.jetbrains.kotlin.android" version "1.9.22" apply false
+    }
 
-          include ":app"
-          EOF
+    include ":app"
+    EOF
 
-          # 3. Force root build.gradle to AGP 8.2.1
-          cat << 'EOF' > android/build.gradle
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
+    # 3. Clean root build.gradle (no evaluationDependsOn)
+    cat << 'EOF' > android/build.gradle
+    allprojects {
+        repositories {
+            google()
+            mavenCentral()
+        }
+    }
 
-          rootProject.buildDir = '../build'
-          subprojects {
-              project.buildDir = "${rootProject.buildDir}/${project.name}"
-          }
-          subprojects {
-              project.evaluationDependsOn(':app')
-          }
+    rootProject.buildDir = "../build"
+    subprojects {
+        project.buildDir = "\( {rootProject.buildDir}/ \){project.name}"
+    }
 
-          tasks.register("clean", Delete) {
-              delete rootProject.buildDir
-          }
-          EOF
+    tasks.register("clean", Delete) {
+        delete rootProject.buildDir
+    }
+    EOF
 
-          # 4. Force app/build.gradle to AGP 8 syntax and desugar_jdk_libs 2.0.4
-          cat << 'EOF' > android/app/build.gradle
-          plugins {
-              id "com.android.application"
-              id "kotlin-android"
-              id "dev.flutter.flutter-gradle-plugin"
-          }
+    # 4. app/build.gradle (same as before, just keep it)
+    cat << 'EOF' > android/app/build.gradle
+    plugins {
+        id "com.android.application"
+        id "kotlin-android"
+        id "dev.flutter.flutter-gradle-plugin"
+    }
 
-          android {
-              namespace "com.jagarsenghda"
-              compileSdk = 34
+    android {
+        namespace "com.jagarsenghda"
+        compileSdk = 34
 
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-                  coreLibraryDesugaringEnabled true
-              }
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_17
+            targetCompatibility JavaVersion.VERSION_17
+            coreLibraryDesugaringEnabled true
+        }
 
-              kotlinOptions {
-                  jvmTarget = '17'
-              }
+        kotlinOptions {
+            jvmTarget = "17"
+        }
 
-              defaultConfig {
-                  applicationId "com.jagarsenghda"
-                  minSdk = 23
-                  targetSdk = 34
-                  versionCode 1
-                  versionName "1.0.0"
-              }
+        defaultConfig {
+            applicationId "com.jagarsenghda"
+            minSdk = 23
+            targetSdk = 34
+            versionCode 1
+            versionName "1.0.0"
+        }
 
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.debug
-                  }
-              }
-          }
+        buildTypes {
+            release {
+                signingConfig signingConfigs.debug
+            }
+        }
+    }
 
-          flutter {
-              source '../..'
-          }
+    flutter {
+        source "../.."
+    }
 
-          dependencies {
-              coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
-          }
-          EOF
+    dependencies {
+        coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"
+    }
+    EOF
 
       - name: Build Android Debug APK
         run: |
