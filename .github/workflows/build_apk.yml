@@ -27,16 +27,14 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Generate Android Scaffolding
+      - name: Generate Android Platform Files & Force AGP 8.2.1
         run: |
           cd mobile_app
           mkdir -p assets/db assets/models
           flutter create --platforms=android --org com.jagarsenghda .
 
-      - name: Force Upgrade Root AGP to 8.2.1, Gradle to 8.2, and Enable Java 17
-        run: |
-          # 1. Overwrite Gradle Wrapper to version 8.2
-          cat << 'EOF' > mobile_app/android/gradle/wrapper/gradle-wrapper.properties
+          # 1. Force Gradle Wrapper to 8.2
+          cat << 'EOF' > android/gradle/wrapper/gradle-wrapper.properties
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
           zipStoreBase=GRADLE_USER_HOME
@@ -44,21 +42,40 @@ jobs:
           distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-all.zip
           EOF
 
-          # 2. Overwrite ROOT build.gradle to upgrade AGP from 7.3.0 to 8.2.1
-          cat << 'EOF' > mobile_app/android/build.gradle
-          buildscript {
-              ext.kotlin_version = '1.9.22'
+          # 2. Force settings.gradle to use AGP 8.2.1 and Kotlin 1.9.22
+          cat << 'EOF' > android/settings.gradle
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  def file = new File(rootProject.projectDir, "local.properties")
+                  if (file.exists()) {
+                      file.withReader("UTF-8") { reader -> properties.load(reader) }
+                  }
+                  def flutterSdkPath = properties.getProperty("flutter.sdk")
+                  assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+                  return flutterSdkPath
+              }()
+
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+
               repositories {
                   google()
                   mavenCentral()
-              }
-
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.1'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+                  gradlePluginPortal()
               }
           }
 
+          plugins {
+              id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
+              id "com.android.application" version "8.2.1" apply false
+              id "org.jetbrains.kotlin.android" version "1.9.22" apply false
+          }
+
+          include ":app"
+          EOF
+
+          # 3. Force root build.gradle to AGP 8.2.1
+          cat << 'EOF' > android/build.gradle
           allprojects {
               repositories {
                   google()
@@ -79,8 +96,8 @@ jobs:
           }
           EOF
 
-          # 3. Overwrite APP build.gradle with AGP 8 syntax & Java 17 desugaring
-          cat << 'EOF' > mobile_app/android/app/build.gradle
+          # 4. Force app/build.gradle to AGP 8 syntax and desugar_jdk_libs 2.0.4
+          cat << 'EOF' > android/app/build.gradle
           plugins {
               id "com.android.application"
               id "kotlin-android"
