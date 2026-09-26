@@ -117,3 +117,33 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+# ==========================================
+# PROJECT JAGAR SENGHDA - CUSTOM EXCLUSIONS
+# ==========================================
+
+# 1. On-Device ML Models & Weights 
+# Ignores quantized ONNX and whisper.cpp binary models to prevent repository bloating[span_0](start_span)[span_0](end_span)[span_1](start_span)[span_1](end_span).
+assets/models/*.onnx
+assets/models/*.bin
+assets/models/*.pt
+
+# 2. SQLite Database Temporary Files 
+# Ignores temporary shared memory and write-ahead log files created by the Local Competency Store running in SQLite WAL mode[span_2](start_span)[span_2](end_span).
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+
+# 3. Android NDK & C++ Native Build Artifacts 
+# Ignores compiled native C++ binaries required for the background execution of whisper.cpp and Piper TTS[span_3](start_span)[span_3](end_span).
+**/android/.cxx/
+**/android/obj/
+**/android/libs/
+*.o
+*.a
+*.so
+
+# 4. Generated Curriculum Resources
+# Ignores locally generated vector canvas PDF worksheets mapped to the NIPUN Bharat framework[span_4](start_span)[span_4](end_span).
+/assets/generated_pdfs/
+*.pdf
