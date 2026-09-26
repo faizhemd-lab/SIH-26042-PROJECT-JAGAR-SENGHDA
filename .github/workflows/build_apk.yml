@@ -27,16 +27,15 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Prepare Assets & Android Platform Configuration
+      - name: Prepare Assets & Generate Android Scaffolding
         run: |
           cd mobile_app
           mkdir -p assets/db assets/models
-          
-          # 1. Generate base Android platform files
           flutter create --platforms=android --org com.jagarsenghda .
 
-          # 2. Overwrite build.gradle using AGP 7.3 compatible Groovy syntax
-          cat << 'EOF' > android/app/build.gradle
+      - name: Apply AGP 7.3 Java 17 Desugaring Configuration
+        run: |
+          cat << 'EOF' > mobile_app/android/app/build.gradle
           plugins {
               id "com.android.application"
               id "kotlin-android"
@@ -81,17 +80,15 @@ jobs:
           }
           EOF
 
-          # 3. Enable AndroidX and set JVM memory for CI runner
+      - name: Build Android Debug APK
+        run: |
+          cd mobile_app
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
 
           yes | flutter doctor --android-licenses || true
           flutter pub get
-
-      - name: Build Android Debug APK
-        run: |
-          cd mobile_app
           flutter build apk --debug --no-tree-shake-icons
 
       - name: Upload Build Artifact
