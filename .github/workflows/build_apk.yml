@@ -27,14 +27,59 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Prepare Assets & Generate Android Scaffolding
+      - name: Generate Android Scaffolding
         run: |
           cd mobile_app
           mkdir -p assets/db assets/models
           flutter create --platforms=android --org com.jagarsenghda .
 
-      - name: Apply AGP 7.3 Java 17 Desugaring Configuration
+      - name: Force Upgrade Root AGP to 8.2.1, Gradle to 8.2, and Enable Java 17
         run: |
+          # 1. Overwrite Gradle Wrapper to version 8.2
+          cat << 'EOF' > mobile_app/android/gradle/wrapper/gradle-wrapper.properties
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-all.zip
+          EOF
+
+          # 2. Overwrite ROOT build.gradle to upgrade AGP from 7.3.0 to 8.2.1
+          cat << 'EOF' > mobile_app/android/build.gradle
+          buildscript {
+              ext.kotlin_version = '1.9.22'
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.1'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+              }
+          }
+
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.buildDir = '../build'
+          subprojects {
+              project.buildDir = "${rootProject.buildDir}/${project.name}"
+          }
+          subprojects {
+              project.evaluationDependsOn(':app')
+          }
+
+          tasks.register("clean", Delete) {
+              delete rootProject.buildDir
+          }
+          EOF
+
+          # 3. Overwrite APP build.gradle with AGP 8 syntax & Java 17 desugaring
           cat << 'EOF' > mobile_app/android/app/build.gradle
           plugins {
               id "com.android.application"
@@ -44,7 +89,7 @@ jobs:
 
           android {
               namespace "com.jagarsenghda"
-              compileSdkVersion 34
+              compileSdk = 34
 
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -58,8 +103,8 @@ jobs:
 
               defaultConfig {
                   applicationId "com.jagarsenghda"
-                  minSdkVersion 23
-                  targetSdkVersion 34
+                  minSdk = 23
+                  targetSdk = 34
                   versionCode 1
                   versionName "1.0.0"
               }
@@ -76,7 +121,7 @@ jobs:
           }
 
           dependencies {
-              coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.2.2'
+              coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
           }
           EOF
 
