@@ -77,7 +77,6 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
-                  gradlePluginPortal()
               }
           }
 
@@ -91,7 +90,7 @@ jobs:
           }
           EOF
 
-          # 4. app/build.gradle
+          # 4. app/build.gradle (same as before, just keep it)
           cat << 'EOF' > android/app/build.gradle
           plugins {
               id "com.android.application"
@@ -148,14 +147,9 @@ jobs:
           flutter pub get
           flutter build apk --debug --no-tree-shake-icons
 
-      - name: Verify APK Binary Existence
-        run: |
-          ls -la mobile_app/build/app/outputs/flutter-apk/app-debug.apk
-
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: jagar-senghda-debug-apk
           path: mobile_app/build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
-          compression-level: 0
