@@ -23,4 +23,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  flutter_lints: ^3.0.0
